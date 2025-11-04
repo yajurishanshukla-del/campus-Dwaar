@@ -1,0 +1,72 @@
+// ===== Backend API for Gate Pass Management =====
+const express = require("express");
+const cors = require("cors");
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// ---- In-memory data store ----
+let requestsStore = [
+  { id: 1, studentName: "Apurya Sharma", reason: "Recest povieson", date: "07/17/2024", status: "pending", studentId: "1" },
+  { id: 2, studentName: "Rohit Gupta", reason: "Formar s leon", date: "04/18/2024", status: "approved", studentId: "3" },
+  { id: 3, studentName: "Ananya Singh", reason: "Resident deor", date: "06/23/2024", status: "rejected", studentId: "4" }
+];
+
+// ---- Mock Users ----
+const users = {
+  student: { role: "student", name: "Apurva Sharma", id: "1", password: "password" },
+  admin: { role: "admin", name: "Admin User", id: "2", password: "password" },
+};
+
+// ---- API Routes ----
+
+// Login
+app.post("/api/login", (req, res) => {
+  const { username, password } = req.body;
+  const user = users[username];
+
+  if (user && password === user.password) {
+    res.json({ success: true, user: { role: user.role, name: user.name, id: user.id } });
+  } else {
+    res.status(401).json({ success: false, error: "Invalid credentials" });
+  }
+});
+
+// Submit a new gate pass request
+app.post("/api/requests", (req, res) => {
+  const request = req.body;
+  const newRequest = { ...request, id: Date.now() };
+  requestsStore.push(newRequest);
+  res.json({ success: true, id: newRequest.id });
+});
+
+// Get all requests (admin) or specific user requests (student)
+app.get("/api/requests", (req, res) => {
+  const { userId, role } = req.query;
+  if (role === "student") {
+    const filtered = requestsStore.filter(r => r.studentId === userId);
+    res.json(filtered);
+  } else {
+    res.json(requestsStore);
+  }
+});
+
+// Update status of a request (admin only)
+app.put("/api/requests/:id/status", (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const index = requestsStore.findIndex(req => req.id == id);
+  if (index !== -1) {
+    requestsStore[index] = { ...requestsStore[index], status };
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ success: false, error: "Request not found" });
+  }
+});
+
+// ---- Server Start ----
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
